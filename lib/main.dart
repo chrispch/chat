@@ -1,17 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/platform_adaptive.dart';
 
 void main() => runApp(MyApp());
-
-final dummySnapshot = [
- {"name": "Filip", "votes": 15},
- {"name": "Abraham", "votes": 14},
- {"name": "Richard", "votes": 11},
- {"name": "Ike", "votes": 10},
- {"name": "Justin", "votes": 1},
-];
 
 class MyApp extends StatelessWidget {
  @override
@@ -32,17 +26,56 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   List<Message> _messages = [];
-  // DocumentReference _messagesReference = Firestore.instance.reference();
+  Firestore _db = Firestore.instance;
+  FirebaseUser _user;
+  String _name;
   TextEditingController _textController = TextEditingController();
   bool _isComposing = false;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<FirebaseUser> _handleSignIn() async {
+    final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    final AuthCredential credential = GoogleAuthProvider.getCredential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    
+    final FirebaseUser user = await _auth.signInWithCredential(credential);
+    print("signed in " + user.displayName);
+    return user;
+  }
 
   void _handlePhotoButtonPressed() {
     print("photo button pressed");
   }
   
-  void _handleSubmitted(String text) {
-    print("submit button pressed");
+  Future<Message> _handleSubmitted(String text) async {
+    _textController.clear();
+
+    final TransactionHandler createTransaction = (Transaction tx) async {
+      final DocumentSnapshot ds = await tx.get(_db.collection('chat1').document());
+  
+      var dataMap = new Map<String, dynamic>();
+      dataMap['sender'] = _name;
+      dataMap['text'] = text;
+      dataMap['timestamp'] = DateTime.now();
+  
+      await tx.set(ds.reference, dataMap);
+  
+      return dataMap;
+    };
+  
+    return Firestore.instance.runTransaction(createTransaction).then((mapData) {
+      return Message.fromMap(mapData);
+    }).catchError((error) {
+      print('error: $error');
+      return null;
+    });
   }
+  
   
   void _handleMessageChanged(String text) {
     print("message changed");
@@ -52,9 +85,35 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    print("state init");
+    _handleSignIn()
+      .then((FirebaseUser user) => () {
+                setState(() {
+                  _user = user;
+                  _name = _user.displayName;
+                });
+              })
+      .catchError((e) => print(e));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Chat')),
+      appBar: AppBar(
+        title: Text('$_name'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.account_circle),
+            onPressed: () => _handleSignIn()
+              .then((FirebaseUser user) => () {
+                setState(() {
+                  _user = user;
+                });
+              })
+              .catchError((e) => print(e)),)
+      ]),
       body: Column(children: [
           Flexible(
               child: _buildChatList(context),
@@ -128,12 +187,6 @@ class _ChatScreenState extends State<ChatScreen> {
           subtitle: Text(message.text),
           trailing: Text(DateFormat('yyyy').format(message.timestamp).toString()),
           onTap: () => print("clicked"),
-          // Firestore.instance.runTransaction((transaction) async {
-          //   final freshSnapshot = await transaction.get(message.reference);
-          //   final fresh = Message.fromSnapshot(freshSnapshot);
-          //   await transaction
-          //       .update(message.reference, {'votes': fresh.votes + 1});
-          // }),
         ),
       ),
     );
@@ -151,7 +204,7 @@ class Message {
        assert(map['text'] != null),
        assert(map['timestamp'] != null),
        sender = map['sender'],
-       timestamp = map['timestamp'],
+       timestamp = map['timestamp'].toDate(),
        text = map['text'];
 
  Message.fromSnapshot(DocumentSnapshot snapshot)
