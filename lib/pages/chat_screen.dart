@@ -49,7 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _textController.clear();
 
     final TransactionHandler createTransaction = (Transaction tx) async {
-      final DocumentSnapshot ds = await tx.get(_db.collection('chat1').document());
+      final DocumentSnapshot ds = await tx.get(_db.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').document());
   
       var dataMap = new Map<String, dynamic>();
       dataMap['sender'] = _user.displayName;
@@ -149,7 +149,7 @@ class _ChatScreenState extends State<ChatScreen> {
  
   Widget _buildChatList(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: Firestore.instance.collection('chat1').snapshots(),
+      stream: Firestore.instance.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return LinearProgressIndicator();
         return ListView(
