@@ -84,9 +84,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _handleSignIn()
       .then((FirebaseUser user) => () {
                 print("successfully signed in");
-                setState(() {
-                  _user = user;
-                });
               })
       .catchError((e) => print(e));
   }
@@ -102,9 +99,6 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => _handleSignIn()
               .then((FirebaseUser user) => () {
                 print("successfully signed in");
-                setState(() {
-                  _user = user;
-                });
               })
               .catchError((e) => print(e)),)
       ]),
