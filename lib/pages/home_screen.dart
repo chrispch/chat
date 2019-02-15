@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
-import 'package:chat/platform_adaptive.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,12 +15,10 @@ class _HomeScreenState extends State<HomeScreen> {
   FirebaseUser _user;
   TextEditingController _textController = TextEditingController();
   bool _isComposing = false;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<FirebaseUser> _handleSignIn() async {
-    final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    // go to sign in screen where you can enter phone number and verification code
 
     final AuthCredential credential = GoogleAuthProvider.getCredential(
       accessToken: googleAuth.accessToken,
@@ -61,6 +57,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _providerInfo["photoUrl"] = _provider.photoUrl;
     _providerInfo["name"] = _provider.displayName;
     _providerInfo["phoneNumber"] = _provider.phoneNumber;
+  }
+
+  @override
+  void initState () {
+    if (_auth.currentUser == null) {
+      // attempt sign in
+    }
   }
 
   @override

@@ -89,7 +89,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   if (_formKey.currentState.validate()) {
                     print("form submitted!");
                     _formKey.currentState.save();
-                    print(widget._providerInfo);
+                    // navigate back to home_screen
                   }
                 },
                 child: Text('Submit'),

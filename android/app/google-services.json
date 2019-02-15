@@ -8,18 +8,18 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:754840042446:android:24ce4ef99969196a",
+        "mobilesdk_app_id": "1:754840042446:android:b52425d7201f7bdd",
         "android_client_info": {
-          "package_name": "com.example.chat"
+          "package_name": "com.crispycrispycode.chat"
         }
       },
       "oauth_client": [
         {
-          "client_id": "754840042446-r2qdqiioal70t57e5cfl3gve9o13aip5.apps.googleusercontent.com",
+          "client_id": "754840042446-qtr2mvpneet60djhu1k1hr9gnj8rgeve.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.chat",
-            "certificate_hash": "d60122621d40191de77b22d760f14c54ca00dda7"
+            "package_name": "com.crispycrispycode.chat",
+            "certificate_hash": "a2d10870b9d9092197047f86ee392134ea65ef19"
           }
         },
         {
@@ -42,6 +42,13 @@
             {
               "client_id": "754840042446-hhpco8mbs687f1pr5cbps97261jsmlmf.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "754840042446-33aqbe4ljiekv2ca9mk1r8hjnp4sfp8l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.crispycode.chat"
+              }
             }
           ]
         },
