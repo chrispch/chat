@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpScreen extends StatefulWidget {
   final Map<String, dynamic> _providerInfo;
@@ -12,6 +14,27 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  @override
+  initState() {
+    super.initState();
+    _authenticateWithGoogle();
+  }
+
+  void _authenticateWithGoogle() async {
+    final GoogleSignInAccount _googleUser = await _googleSignIn.signIn();
+    final GoogleSignInAuthentication _googleAuth = 
+            await _googleUser.authentication;
+    final AuthCredential _credential = GoogleAuthProvider.getCredential(
+      accessToken: _googleAuth.accessToken,
+      idToken: _googleAuth.idToken,
+    );
+    final FirebaseUser _user = await
+            _auth.signInWithCredential(_credential);
+    print(_user.uid);
+  }
 
   String validateEmail(String value) {
     Pattern pattern =
