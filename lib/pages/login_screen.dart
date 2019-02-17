@@ -3,27 +3,38 @@ import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class SignUpScreen extends StatefulWidget {
-  final Map<String, dynamic> _providerInfo;
-  SignUpScreen(this._providerInfo);
+class LoginScreen extends StatefulWidget {
+  FirebaseUser _user;
+  LoginScreen(this._user); 
   @override
-  _SignUpScreenState createState() {
-    return _SignUpScreenState();
+  _LoginScreenState createState() {
+    return _LoginScreenState();
   }
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Map<String, dynamic> _providerInfo = {};
+
 
   @override
   initState() {
     super.initState();
-    _authenticateWithGoogle();
+    print("loaded login screen");
+    // attempt to sign in user
+    if (widget._user == null) {
+      _authenticateWithGoogle();
+    }
+    else {
+      print(widget._user.uid);
+      print("already logged in");
+    }
   }
 
   void _authenticateWithGoogle() async {
+    print("authenticating...");
     final GoogleSignInAccount _googleUser = await _googleSignIn.signIn();
     final GoogleSignInAuthentication _googleAuth = 
             await _googleUser.authentication;
@@ -31,9 +42,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       accessToken: _googleAuth.accessToken,
       idToken: _googleAuth.idToken,
     );
-    final FirebaseUser _user = await
+    widget._user = await
             _auth.signInWithCredential(_credential);
-    print(_user.uid);
+    print(widget._user.uid);
+    //TODO: check if user tied to this Google account is already signed up
   }
 
   String validateEmail(String value) {
@@ -67,6 +79,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           children: <Widget>[
             _buildCircleAvatar(context),
             TextFormField(
+              initialValue: _providerInfo["name"]?? "",
               validator: (value) {
                 if (value.isEmpty) {
                   return 'Please enter a valid name';
@@ -77,18 +90,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 // hintText: '...',
                 icon: const Icon(Icons.person),
               ),
-              onSaved: (val) => widget._providerInfo["name"] = val
+              onSaved: (val) => _providerInfo["name"] = val
             ),
             TextFormField(
+              initialValue: _providerInfo["email"]?? "",
               validator: validateEmail,
               decoration: InputDecoration(
                 labelText: 'Email',
                 // hintText: 'This will be inked to your account',
                 icon: const Icon(Icons.mail),
               ),
-              onSaved: (val) => widget._providerInfo["email"] = val
+              onSaved: (val) => _providerInfo["email"] = val
             ),
             TextFormField(
+              initialValue: _providerInfo["phoneNumber"]?? "",
               validator: (value) {
                 if (value.isEmpty) {
                   return 'Please enter a valid phone number';
@@ -103,7 +118,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               inputFormatters: [
                 WhitelistingTextInputFormatter(RegExp(r'^[+()\d -]{1,15}$')),
               ],
-              onSaved: (val) => widget._providerInfo["phoneNumber"] = val
+              onSaved: (val) => _providerInfo["phoneNumber"] = val
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -124,19 +139,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Widget _buildCircleAvatar (BuildContext context) {
-    if (widget._providerInfo["photoUrl"] != null) {
+    if (_providerInfo["photoUrl"] != null) {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
           radius: MediaQuery.of(context).size.width / 4,
-          backgroundImage: NetworkImage(widget._providerInfo["photoUrl"]),
+          backgroundImage: NetworkImage(_providerInfo["photoUrl"]),
         ),
       );
     }
     else {
-      final List<String> _nameWords = widget._providerInfo["name"].split(' ');
       String _initials = "";
-      _nameWords.forEach((val) => _initials = _initials + val[0]);
+      if (_providerInfo["name"] != null) {
+        final List<String> _nameWords = _providerInfo["name"].split(' ');
+        _nameWords.forEach((val) => _initials = _initials + val[0]);
+      }
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(

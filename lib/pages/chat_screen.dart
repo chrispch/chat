@@ -6,6 +6,8 @@ import 'package:chat/platform_adaptive.dart';
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
+  FirebaseUser _user;
+  ChatScreen(this._user);
   @override
   _ChatScreenState createState() {
     return _ChatScreenState();
@@ -15,7 +17,6 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   // List<Message> _messages = [];
   Firestore _db = Firestore.instance;
-  FirebaseUser _user;
   TextEditingController _textController = TextEditingController();
   bool _isComposing = false;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
@@ -34,11 +35,15 @@ class _ChatScreenState extends State<ChatScreen> {
     
     // If user already logged in (restart app)
     setState(() {
-      _user = user;
+      widget._user = user;
     });
-    print("signed in " + _user.displayName);
+    print("signed in " + widget._user.displayName);
 
     return user;
+  }
+
+  void _handleSignOut() async {
+    await FirebaseAuth.instance.signOut();
   }
 
   void _handlePhotoButtonPressed() {
@@ -52,7 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final DocumentSnapshot ds = await tx.get(_db.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').document());
   
       var dataMap = new Map<String, dynamic>();
-      dataMap['sender'] = _user.displayName;
+      dataMap['sender'] = widget._user.displayName;
       dataMap['text'] = text;
       dataMap['timestamp'] = DateTime.now();
   
@@ -69,7 +74,6 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
   
-  
   void _handleMessageChanged(String text) {
     print("message changed");
     setState(() {
@@ -78,29 +82,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    print("state init");
-    _handleSignIn()
-      .then((FirebaseUser user) => () {
-                print("successfully signed in");
-              })
-      .catchError((e) => print(e));
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${_user?.displayName ?? "Chat"}'),
+        title: Text('${widget._user?.displayName ?? "Chat"}'),
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.account_circle),
-            onPressed: () => _handleSignIn()
-              .then((FirebaseUser user) => () {
-                print("successfully signed in");
-              })
-              .catchError((e) => print(e)),)
+            onPressed: () => _handleSignOut()
+            )
       ]),
       body: Column(children: [
           Flexible(
