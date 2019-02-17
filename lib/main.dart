@@ -15,11 +15,6 @@ class MyApp extends StatelessWidget {
   );
  }
 
-void _getCurrentUser() async {
-  FirebaseUser _user = await FirebaseAuth.instance.currentUser();
-  print(_user.uid);
-}
-
  Widget _handleCurrentScreen() {
     return StreamBuilder<FirebaseUser>(
       stream: FirebaseAuth.instance.onAuthStateChanged,
@@ -38,7 +33,7 @@ void _getCurrentUser() async {
             return ChatScreen(snapshot.data);
           }
           // log in user
-          return LoginScreen(snapshot.data);
+          return LoginScreen();
         }
       }
     );

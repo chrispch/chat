@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:chat/platform_adaptive.dart';
 import 'package:flutter/material.dart';
+import 'package:chat/models/message.dart';
 
 class ChatScreen extends StatefulWidget {
   FirebaseUser _user;
@@ -169,25 +170,4 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-}
-
-class Message {
- final String text;
- final String sender;
- final DateTime timestamp;
- final DocumentReference reference;
-
- Message.fromMap(Map<String, dynamic> map, {this.reference})
-     : assert(map['sender'] != null),
-       assert(map['text'] != null),
-       assert(map['timestamp'] != null),
-       sender = map['sender'],
-       timestamp = map['timestamp'].toDate(),
-       text = map['text'];
-
- Message.fromSnapshot(DocumentSnapshot snapshot)
-     : this.fromMap(snapshot.data, reference: snapshot.reference);
-
- @override
- String toString() => "Message<$sender:$text>";
 }

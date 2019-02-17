@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:chat/models/user.dart';
 
 class LoginScreen extends StatefulWidget {
-  FirebaseUser _user;
-  LoginScreen(this._user); 
   @override
   _LoginScreenState createState() {
     return _LoginScreenState();
@@ -13,24 +12,17 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  FirebaseUser _user;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final Map<String, dynamic> _providerInfo = {};
-
+  final FirebaseAuth _auth = FirebaseAuth.instance;  
+  Firestore _db = Firestore.instance;
 
   @override
   initState() {
     super.initState();
     print("loaded login screen");
     // attempt to sign in user
-    if (widget._user == null) {
-      _authenticateWithGoogle();
-    }
-    else {
-      print(widget._user.uid);
-      print("already logged in");
-    }
+    _authenticateWithGoogle();
   }
 
   void _authenticateWithGoogle() async {
@@ -42,127 +34,38 @@ class _LoginScreenState extends State<LoginScreen> {
       accessToken: _googleAuth.accessToken,
       idToken: _googleAuth.idToken,
     );
-    widget._user = await
+    _user = await
             _auth.signInWithCredential(_credential);
-    print(widget._user.uid);
-    //TODO: check if user tied to this Google account is already signed up
+    print(_user.uid);
+    QuerySnapshot _usersWithSameEmail = await _db.collection('users').where('email', isEqualTo: _user.providerData[0].email).getDocuments();
+    if (_usersWithSameEmail.documents.length == 0) {
+      _updateUserProfile();
+    }
   }
 
-  String validateEmail(String value) {
-    Pattern pattern =
-        r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
-    RegExp regex = new RegExp(pattern);
-    if (!regex.hasMatch(value))
-      return 'Please enter a valid email';
-    else
-      return null;
-  }
+  Future<User> _updateUserProfile () async {
+    final TransactionHandler createTransaction = (Transaction tx) async {
+      final DocumentSnapshot ds = await tx.get(_db.collection('users').document());
   
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text("Sign Up"),
-        ),
-        body: _buildForm(context),
-    );
+      var dataMap = new Map<String, dynamic>();
+      dataMap['name'] = _user.providerData[0].displayName;
+      dataMap['email'] = _user.providerData[0].email;
+      dataMap['photoUrl'] = _user.providerData[0].photoUrl;
+
+      await tx.set(ds.reference, dataMap);
+  
+      return dataMap;
+    };
+  
+    return Firestore.instance.runTransaction(createTransaction).then((mapData) {
+      return User.fromMap(mapData);
+    }).catchError((error) {
+      print('error: $error');
+      return null;
+    });
   }
 
-  Widget _buildForm(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          // mainAxisAlignment: MainAxisAlignment.center,
-          // crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            _buildCircleAvatar(context),
-            TextFormField(
-              initialValue: _providerInfo["name"]?? "",
-              validator: (value) {
-                if (value.isEmpty) {
-                  return 'Please enter a valid name';
-                }
-              },
-              decoration: InputDecoration(
-                labelText: 'Display name',
-                // hintText: '...',
-                icon: const Icon(Icons.person),
-              ),
-              onSaved: (val) => _providerInfo["name"] = val
-            ),
-            TextFormField(
-              initialValue: _providerInfo["email"]?? "",
-              validator: validateEmail,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                // hintText: 'This will be inked to your account',
-                icon: const Icon(Icons.mail),
-              ),
-              onSaved: (val) => _providerInfo["email"] = val
-            ),
-            TextFormField(
-              initialValue: _providerInfo["phoneNumber"]?? "",
-              validator: (value) {
-                if (value.isEmpty) {
-                  return 'Please enter a valid phone number';
-                }
-              },
-              decoration: InputDecoration(
-                labelText: 'Phone number',
-                hintText: 'eg. +1 408-555-6969',
-                icon: const Icon(Icons.phone),
-              ),
-              keyboardType: TextInputType.phone,
-              inputFormatters: [
-                WhitelistingTextInputFormatter(RegExp(r'^[+()\d -]{1,15}$')),
-              ],
-              onSaved: (val) => _providerInfo["phoneNumber"] = val
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: RaisedButton(
-                onPressed: () {
-                  if (_formKey.currentState.validate()) {
-                    print("form submitted!");
-                    _formKey.currentState.save();
-                    // navigate back to home_screen
-                  }
-                },
-                child: Text('Submit'),
-              ),
-            ),
-          ],
-      )),
-    );
-  }
-
-  Widget _buildCircleAvatar (BuildContext context) {
-    if (_providerInfo["photoUrl"] != null) {
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: CircleAvatar(
-          radius: MediaQuery.of(context).size.width / 4,
-          backgroundImage: NetworkImage(_providerInfo["photoUrl"]),
-        ),
-      );
-    }
-    else {
-      String _initials = "";
-      if (_providerInfo["name"] != null) {
-        final List<String> _nameWords = _providerInfo["name"].split(' ');
-        _nameWords.forEach((val) => _initials = _initials + val[0]);
-      }
-      return Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: CircleAvatar(
-          radius: MediaQuery.of(context).size.width / 4,
-          child: Text(_initials?? "?",
-            style: TextStyle(fontSize: 40)
-          )
-        ),
-      );
-    }
+  Widget build (BuildContext context) {
+    return Center(child: CircularProgressIndicator());
   }
 }
