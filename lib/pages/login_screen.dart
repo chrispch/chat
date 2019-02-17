@@ -51,6 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
       dataMap['name'] = _user.providerData[0].displayName;
       dataMap['email'] = _user.providerData[0].email;
       dataMap['photoUrl'] = _user.providerData[0].photoUrl;
+      dataMap['uid'] = _user.uid;
 
       await tx.set(ds.reference, dataMap);
   
@@ -66,6 +67,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget build (BuildContext context) {
-    return Center(child: CircularProgressIndicator());
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sign In'),
+      ),
+      body: Center(child: CircularProgressIndicator()));
   }
 }

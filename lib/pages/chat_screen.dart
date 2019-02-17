@@ -1,10 +1,11 @@
+import 'package:chat/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:chat/platform_adaptive.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/models/message.dart';
+import 'package:chat/pages/edit_profile_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   FirebaseUser _user;
@@ -18,33 +19,28 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   // List<Message> _messages = [];
   Firestore _db = Firestore.instance;
+  User _profile;
   TextEditingController _textController = TextEditingController();
   bool _isComposing = false;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<FirebaseUser> _handleSignIn() async {
-    final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-    final AuthCredential credential = GoogleAuthProvider.getCredential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    
-    final FirebaseUser user = await _auth.signInWithCredential(credential);
-    
-    // If user already logged in (restart app)
-    setState(() {
-      widget._user = user;
-    });
-    print("signed in " + widget._user.displayName);
-
-    return user;
+  @override
+  initState() {
+    super.initState();
+    _db.collection('users').where("uid", isEqualTo: widget._user.uid).snapshots()
+      .listen((data) {
+        data.documents.forEach((document) {
+          setState(() {
+            _profile = User.fromSnapshot(document);
+          });
+        });
+      });
   }
 
-  void _handleSignOut() async {
-    await FirebaseAuth.instance.signOut();
+  void _handleEditProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditProfileScreen(widget._user)),
+    );
   }
 
   void _handlePhotoButtonPressed() {
@@ -58,7 +54,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final DocumentSnapshot ds = await tx.get(_db.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').document());
   
       var dataMap = new Map<String, dynamic>();
-      dataMap['sender'] = widget._user.displayName;
+      dataMap['sender'] = _profile.name;
       dataMap['text'] = text;
       dataMap['timestamp'] = DateTime.now();
   
@@ -86,21 +82,21 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget._user?.displayName ?? "Chat"}'),
+        title: Text('${_profile?.name ?? "Chat"}'),
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.account_circle),
-            onPressed: () => _handleSignOut()
+            onPressed: () => _handleEditProfile()
             )
-      ]),
-      body: Column(children: [
-          Flexible(
-              child: _buildChatList(context),
-          ),
-          Divider(height: 1.0),
-          Container(
-              decoration: BoxDecoration(color: Theme.of(context).cardColor),
-              child: _buildTextComposer()),
+        ]),
+        body: Column(children: [
+            Flexible(
+                child: _buildChatList(context),
+            ),
+            Divider(height: 1.0),
+            Container(
+                decoration: BoxDecoration(color: Theme.of(context).cardColor),
+                child: _buildTextComposer()),
         ]));
   }
 
