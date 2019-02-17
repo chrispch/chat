@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final FirebaseUser _user;
@@ -202,13 +202,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildCircleAvatar (BuildContext context) {
-    if (_providerInfo["photoUrl"] != null) {
+    double _radius = MediaQuery.of(context).size.width / 4;
+    if (_profile.photoUrl != null) {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
-          radius: MediaQuery.of(context).size.width / 4,
-          backgroundImage: NetworkImage(_providerInfo["photoUrl"]),
-        ),
+          radius: _radius,
+          child: ClipRRect(
+              borderRadius: BorderRadius.circular(_radius),
+              child: CachedNetworkImage(
+                imageUrl: _profile.photoUrl,
+                placeholder: new CircularProgressIndicator(),
+                errorWidget: new Icon(Icons.error),
+                fit:BoxFit.cover,
+                width: _radius * 2,
+                height: _radius * 2,
+              ),
+          ),
+        )
       );
     }
     else {

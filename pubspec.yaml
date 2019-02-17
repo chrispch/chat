@@ -24,6 +24,7 @@ dependencies:
   firebase_auth: ^0.8.0+3
   intl: ^0.15.7
   image_picker: any
+  cached_network_image: ^0.5.1
   # cloud_firestore: 0.8.2+3
   # google_sign_in: 3.2.4
   # firebase_auth: 0.7.0
