@@ -1,9 +1,13 @@
+import 'package:uuid/uuid.dart';
 import 'package:chat/models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_ink_well/image_ink_well.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final FirebaseUser _user;
@@ -19,6 +23,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final Firestore _db = Firestore.instance;
   final Map<String, dynamic> _providerInfo = {};
+  bool _loading = false;
   User _profile;
 
   @override
@@ -51,6 +56,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  Future<String> _handleUpdatePhoto () async {
+    var _image = await ImagePicker.pickImage(source: ImageSource.gallery);
+    var _uuid = Uuid().v1();
+    var _ref = FirebaseStorage.instance.ref().child('image_$_uuid.jpg');
+    var _uploadTask = _ref.putFile(_image);
+    setState(() {
+      _loading = true;
+    });
+    String _downloadUrl = await (await _uploadTask.onComplete).ref.getDownloadURL();
+    setState(() {
+      _loading = false;
+      _profile.photoUrl = _downloadUrl;
+    });
+    _updateProfile();
+    return _downloadUrl;
+  }
+
   String validateEmail(String value) {
     Pattern pattern =
         r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
@@ -62,8 +84,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _handleSignOut() async {
-    await FirebaseAuth.instance.signOut();
     await _googleSignIn.signOut();
+    await FirebaseAuth.instance.signOut();
   }
 
   Future<void> _signOutAlert() async {
@@ -71,29 +93,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       context: context,
       barrierDismissible: true, 
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Sign Out'),
-          content: Text('Your data is kept safely in the cloud'),
-          actions: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(6.0),
-              child: FlatButton(
-                child: Text('SIGN OUT', style:TextStyle(color: Colors.red)),
-                onPressed: () {
-                  _handleSignOut();
-                },
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: AlertDialog(
+            title: Text('Sign Out'),
+            content: Text('Your data is kept safely in the cloud'),
+            actions: <Widget>[
+              Padding(
+                padding: const EdgeInsets.all(6.0),
+                child: FlatButton(
+                  child: Text('SIGN OUT', style:TextStyle(color: Colors.red)),
+                  onPressed: () {
+                    _handleSignOut();
+                  },
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(6.0),
-              child: FlatButton(
-                child: Text('CANCEL'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+              Padding(
+                padding: const EdgeInsets.all(6.0),
+                child: FlatButton(
+                  child: Text('CANCEL'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -208,16 +233,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
           radius: _radius,
-          child: ClipRRect(
-              borderRadius: BorderRadius.circular(_radius),
-              child: CachedNetworkImage(
-                imageUrl: _profile.photoUrl,
-                placeholder: new CircularProgressIndicator(),
-                errorWidget: new Icon(Icons.error),
-                fit:BoxFit.cover,
-                width: _radius * 2,
-                height: _radius * 2,
+          child: Stack(
+            children: <Widget>[
+              ClipRRect(
+                  borderRadius: BorderRadius.circular(_radius),
+                  child: CircleImageInkWell(
+                    onPressed: () => _handleUpdatePhoto(),
+                    image: CachedNetworkImageProvider(_profile.photoUrl),
+                    splashColor: Colors.white24,
+                    size: _radius * 2
+                  )
               ),
+              Center(child: _isLoading(context)),
+            ],
           ),
         )
       );
@@ -238,5 +266,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
     }
+  }
+
+  Widget _isLoading (BuildContext context) {
+    if (_loading) {
+      return CircularProgressIndicator();
+    }
+    else return null;
   }
 }

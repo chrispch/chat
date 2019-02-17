@@ -29,9 +29,11 @@ class _ChatScreenState extends State<ChatScreen> {
     _db.collection('users').where("uid", isEqualTo: widget._user.uid).snapshots()
       .listen((data) {
         data.documents.forEach((document) {
-          setState(() {
-            _profile = User.fromSnapshot(document);
-          });
+          if (this.mounted) {
+            setState(() {
+              _profile = User.fromSnapshot(document);
+            });
+          }
         });
       });
   }
