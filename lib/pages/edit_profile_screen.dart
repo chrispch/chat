@@ -67,7 +67,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String _downloadUrl = await (await _uploadTask.onComplete).ref.getDownloadURL();
     setState(() {
       _loading = false;
-      _profile.photoUrl = _downloadUrl;
+      if(_uploadTask.isSuccessful) {
+        _profile.photoUrl = _downloadUrl;
+      }
     });
     _updateProfile();
     return _downloadUrl;
@@ -94,28 +96,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       barrierDismissible: true, 
       builder: (BuildContext context) {
         return Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(12.0),
           child: AlertDialog(
             title: Text('Sign Out'),
             content: Text('Your data is kept safely in the cloud'),
             actions: <Widget>[
-              Padding(
-                padding: const EdgeInsets.all(6.0),
-                child: FlatButton(
-                  child: Text('SIGN OUT', style:TextStyle(color: Colors.red)),
-                  onPressed: () {
-                    _handleSignOut();
-                  },
-                ),
+              FlatButton(
+                child: Text('SIGN OUT', style:TextStyle(color: Colors.red)),
+                onPressed: () {
+                  _handleSignOut();
+                },
               ),
-              Padding(
-                padding: const EdgeInsets.all(6.0),
-                child: FlatButton(
-                  child: Text('CANCEL'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
+              FlatButton(
+                child: Text('CANCEL'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
               ),
             ],
           ),

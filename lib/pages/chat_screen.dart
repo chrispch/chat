@@ -16,8 +16,7 @@ class ChatScreen extends StatefulWidget {
   }
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  // List<Message> _messages = [];
+class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   Firestore _db = Firestore.instance;
   User _profile;
   TextEditingController _textController = TextEditingController();
@@ -144,6 +143,7 @@ class _ChatScreenState extends State<ChatScreen> {
         return ListView(
           padding: const EdgeInsets.only(top: 20.0),
           children: snapshot.data.documents.map((data) => _buildListItem(context, data)).toList(),
+          // reverse: true,
         );
       },
     );
@@ -151,19 +151,34 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
     final message = Message.fromSnapshot(data);
+    final AnimationController _animationController = AnimationController(
+      duration: Duration(milliseconds: 700),
+      vsync: this,
+    );
+    _animationController.forward();
     return Padding(
-      key: ValueKey(message.timestamp),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.all(8.0),
       child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey),
-          borderRadius: BorderRadius.circular(5.0),
-        ),
-        child: ListTile(
-          title: Text(message.sender),
-          subtitle: Text(message.text),
-          trailing: Text(DateFormat('yyyy').format(message.timestamp).toString()),
-          onTap: () => print("clicked"),
+        margin: const EdgeInsets.symmetric(vertical: 10.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                  backgroundImage: NetworkImage(_profile.photoUrl)),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message.sender,
+                    style: Theme.of(context).textTheme.subhead),
+                Container(
+                    margin: const EdgeInsets.only(top: 5.0),
+                    child: Text(message.text)),
+              ],
+            ),
+          ],
         ),
       ),
     );
