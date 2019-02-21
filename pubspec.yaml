@@ -24,7 +24,8 @@ dependencies:
   firebase_auth: ^0.8.0+3
   intl: ^0.15.7
   image_picker: any
-  cached_network_image: ^0.5.1
+  # cached_network_image: ^0.5.1
+  flutter_advanced_networkimage: any
   image_ink_well: ^0.1.0
   firebase_storage: ^2.0.1+1
   uuid: ^1.0.3

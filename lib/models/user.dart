@@ -19,6 +19,9 @@ class User {
 
   User.fromSnapshot(DocumentSnapshot snapshot)
       : this.fromMap(snapshot.data, reference:snapshot.reference);
+  
+  User.fromQuery(QuerySnapshot snapshot)
+      : this.fromSnapshot(snapshot.documents.first);
 
   Map<String, dynamic> toMap() {
     Map<String, dynamic> _map = {};

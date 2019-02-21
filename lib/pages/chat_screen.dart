@@ -1,14 +1,13 @@
 import 'package:chat/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:chat/platform_adaptive.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/models/message.dart';
 import 'package:chat/pages/edit_profile_screen.dart';
+import 'package:flutter_advanced_networkimage/flutter_advanced_networkimage.dart';
 
 class ChatScreen extends StatefulWidget {
-  FirebaseUser _user;
+  final User _user;
   ChatScreen(this._user);
   @override
   _ChatScreenState createState() {
@@ -18,24 +17,8 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   Firestore _db = Firestore.instance;
-  User _profile;
   TextEditingController _textController = TextEditingController();
   bool _isComposing = false;
-
-  @override
-  initState() {
-    super.initState();
-    _db.collection('users').where("uid", isEqualTo: widget._user.uid).snapshots()
-      .listen((data) {
-        data.documents.forEach((document) {
-          if (this.mounted) {
-            setState(() {
-              _profile = User.fromSnapshot(document);
-            });
-          }
-        });
-      });
-  }
 
   void _handleEditProfile() {
     Navigator.push(
@@ -55,7 +38,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       final DocumentSnapshot ds = await tx.get(_db.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').document());
   
       var dataMap = new Map<String, dynamic>();
-      dataMap['sender'] = _profile.name;
+      dataMap['sender'] = widget._user.name;
       dataMap['text'] = text;
       dataMap['timestamp'] = DateTime.now();
   
@@ -83,7 +66,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${_profile?.name ?? "Chat"}'),
+        title: Text('${widget._user?.name ?? "Chat"}'),
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.account_circle),
@@ -155,7 +138,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       duration: Duration(milliseconds: 700),
       vsync: this,
     );
-    _animationController.forward();
+    // _animationController.forward();
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Container(
@@ -166,7 +149,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             Container(
               margin: const EdgeInsets.only(right: 16.0),
               child: CircleAvatar(
-                  backgroundImage: NetworkImage(_profile.photoUrl)),
+                  backgroundImage: AdvancedNetworkImage(
+                      widget._user.photoUrl,
+                      useDiskCache: true),
+              )
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

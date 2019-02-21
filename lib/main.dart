@@ -1,6 +1,7 @@
+import 'package:chat/models/user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:chat/pages/home_screen.dart';
 import 'package:chat/pages/chat_screen.dart';
 import 'package:chat/pages/login_screen.dart';
 
@@ -28,9 +29,10 @@ class MyApp extends StatelessWidget {
         } else {
           if (snapshot.hasData) {
             // user logged in
-            // return MainScreen(firestore: firestore,
-            //     uuid: snapshot.data.uid);
-            return ChatScreen(snapshot.data);
+            return FutureBuilder(future: Firestore.instance.collection('users').where("uid", isEqualTo: snapshot.data.uid).getDocuments(),
+            builder: (BuildContext context, snapshot) {
+              return ChatScreen(User.fromQuery(snapshot.data));
+            });
           }
           // log in user
           return LoginScreen();

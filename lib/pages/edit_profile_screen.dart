@@ -4,13 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+// import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_advanced_networkimage/transition_to_image.dart';
+import 'package:flutter_advanced_networkimage/flutter_advanced_networkimage.dart';
 import 'package:image_ink_well/image_ink_well.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final FirebaseUser _user;
+  final User _user;
   EditProfileScreen(this._user);
   @override
   _EditProfileScreenState createState() {
@@ -24,26 +26,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final Firestore _db = Firestore.instance;
   final Map<String, dynamic> _providerInfo = {};
   bool _loading = false;
-  User _profile;
-
-  @override
-  initState() {
-    super.initState();
-    _db.collection('users').where("uid", isEqualTo: widget._user.uid).snapshots()
-      .listen((data) {
-        data.documents.forEach((document) {
-          setState(() {
-            _profile = User.fromSnapshot(document);
-            // print(_profile.toString());
-          });
-        });
-      });
-  }
 
   Future<User> _updateProfile () async {
     final TransactionHandler createTransaction = (Transaction tx) async {
-      final DocumentSnapshot ds = await tx.get(_profile.reference);
-      var dataMap = _profile.toMap();
+      final DocumentSnapshot ds = await tx.get(widget._user.reference);
+      var dataMap = widget._user.toMap();
       await tx.set(ds.reference, dataMap);
       return dataMap;
     };
@@ -68,7 +55,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() {
       _loading = false;
       if(_uploadTask.isSuccessful) {
-        _profile.photoUrl = _downloadUrl;
+        widget._user.photoUrl = _downloadUrl;
       }
     });
     _updateProfile();
@@ -139,7 +126,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildForm(BuildContext context) {
-    if (_profile == null) {
+    if (widget._user == null) {
       return Center(child: CircularProgressIndicator());
     }
     else {
@@ -153,7 +140,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: <Widget>[
               _buildCircleAvatar(context),
               TextFormField(
-                initialValue: _profile?.name?? "",
+                initialValue: widget._user?.name?? "",
                 validator: (value) {
                   if (value.isEmpty) {
                     return 'Please enter a valid name';
@@ -164,17 +151,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   // hintText: '...',
                   icon: const Icon(Icons.person),
                 ),
-                onSaved: (val) => _profile.name = val
+                onSaved: (val) => widget._user.name = val
               ),
               TextFormField(
-                initialValue: _profile?.email?? "",
+                initialValue: widget._user?.email?? "",
                 validator: validateEmail,
                 decoration: InputDecoration(
                   labelText: 'Email',
                   // hintText: 'This will be inked to your account',
                   icon: const Icon(Icons.mail),
                 ),
-                onSaved: (val) => _profile.email = val
+                onSaved: (val) => widget._user.email = val
               ),
               // Disused input for phone number
               Container(
@@ -224,7 +211,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _buildCircleAvatar (BuildContext context) {
     double _radius = MediaQuery.of(context).size.width / 4;
-    if (_profile.photoUrl != null) {
+    if (widget._user.photoUrl != null) {
       return Padding(
         padding: const EdgeInsets.all(8.0),
         child: CircleAvatar(
@@ -235,7 +222,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   borderRadius: BorderRadius.circular(_radius),
                   child: CircleImageInkWell(
                     onPressed: () => _handleUpdatePhoto(),
-                    image: CachedNetworkImageProvider(_profile.photoUrl),
+                    image: AdvancedNetworkImage(
+                      widget._user.photoUrl,
+                      useDiskCache: true),
                     splashColor: Colors.white24,
                     size: _radius * 2
                   )
