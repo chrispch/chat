@@ -1,11 +1,11 @@
 import 'package:chat/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:chat/helpers/platform_adaptive.dart';
-import 'package:chat/helpers/wrapper_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/models/message.dart';
 import 'package:chat/pages/edit_profile_screen.dart';
 import 'package:flutter_advanced_networkimage/flutter_advanced_networkimage.dart';
+import 'package:firestore_ui/firestore_ui.dart';
 
 class ChatScreen extends StatefulWidget {
   final User _user;
@@ -20,7 +20,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   Firestore _db = Firestore.instance;
   TextEditingController _textController = TextEditingController();
   bool _isComposing = false;
-  List<Message> _messages;
+  // List<Message> _messages;
 
   void _handleEditProfile() {
     Navigator.push(
@@ -38,14 +38,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
     final TransactionHandler createTransaction = (Transaction tx) async {
       final DocumentSnapshot ds = await tx.get(_db.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').document());
-  
       var dataMap = new Map<String, dynamic>();
       dataMap['sender'] = widget._user.name;
       dataMap['text'] = text;
       dataMap['timestamp'] = DateTime.now();
-  
+
+      setState(() {
+        _isComposing = false;
+      });
       await tx.set(ds.reference, dataMap);
-  
       return dataMap;
     };
   
@@ -125,69 +126,63 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
  
   Widget _buildChatList(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: Firestore.instance.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').orderBy('timestamp', descending:true).snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return LinearProgressIndicator();
-        // return ListView(
-        //   padding: const EdgeInsets.only(top: 20.0),
-        //   children: snapshot.data.documents.map((data) => _buildListItem(context, data)).toList(),
-        //   reverse: true,
-        // );
-        return ListView.builder(
-          padding: EdgeInsets.all(8.0),
-          reverse: true,
-          itemCount: snapshot.data.documents.length,
-          itemBuilder: (_, int index) {
-            print(index);
-            return _buildListItem(_, snapshot.data.documents[index]);
-          }
-        );
-      },
+    return FirestoreAnimatedList(
+      reverse: true,
+      query: Firestore.instance.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').orderBy('timestamp', descending:true).snapshots(),
+      itemBuilder: (
+        BuildContext context,
+        DocumentSnapshot snapshot,
+        Animation<double> animation,
+        int index,
+      ) {
+          return FadeTransition(
+            opacity: animation,
+            child: ChatMessage(
+              message: Message.fromSnapshot(snapshot),
+              user: widget._user
+              // onTap: _removeMessage,
+            ),
+          );
+      }
     );
   }
+}
 
-  Widget _buildListItem(BuildContext context, DocumentSnapshot data) {
-    final message = Message.fromSnapshot(data);
-    final AnimationController _animationController = AnimationController(
-      duration: Duration(milliseconds: 700),
-      vsync: this,
-    );
-    _animationController.forward(); 
-    final Widget _return = SizeTransition(
-      sizeFactor: CurvedAnimation(
-        parent: _animationController, curve: Curves.easeOut),
-      axisAlignment: 0.0,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(right: 16.0),
-                child: CircleAvatar(
-                    backgroundImage: AdvancedNetworkImage(
-                        widget._user.photoUrl,
-                        useDiskCache: true),
-                )
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(message.sender,
-                      style: Theme.of(context).textTheme.subhead),
-                  Container(
-                      margin: const EdgeInsets.only(top: 5.0),
-                      child: Text(message.text)),
-                ],
-              ),
-            ],
-          ),
+class ChatMessage extends StatelessWidget {
+  ChatMessage({this.message, this.user});
+  final Message message;
+  final User user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                  backgroundImage: AdvancedNetworkImage(
+                      user.photoUrl,
+                      useDiskCache: true),
+              )
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message.sender,
+                    style: Theme.of(context).textTheme.subhead),
+                Container(
+                    margin: const EdgeInsets.only(top: 5.0),
+                    child: Text(message.text)),
+              ],
+            ),
+          ],
         ),
       ),
     );
-    return _return;
   }
 }
