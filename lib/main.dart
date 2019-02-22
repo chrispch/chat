@@ -31,6 +31,7 @@ class MyApp extends StatelessWidget {
             // user logged in
             return FutureBuilder(future: Firestore.instance.collection('users').where("uid", isEqualTo: snapshot.data.uid).getDocuments(),
             builder: (BuildContext context, snapshot) {
+              if (!snapshot.hasData) { return CircularProgressIndicator(); };
               return ChatScreen(User.fromQuery(snapshot.data));
             });
           }

@@ -1,6 +1,7 @@
 import 'package:chat/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:chat/platform_adaptive.dart';
+import 'package:chat/helpers/platform_adaptive.dart';
+import 'package:chat/helpers/wrapper_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:chat/models/message.dart';
 import 'package:chat/pages/edit_profile_screen.dart';
@@ -19,6 +20,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   Firestore _db = Firestore.instance;
   TextEditingController _textController = TextEditingController();
   bool _isComposing = false;
+  List<Message> _messages;
 
   void _handleEditProfile() {
     Navigator.push(
@@ -55,9 +57,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
   }
   
-  void _handleMessageChanged(String text) {
+  void _handleMessageChanged(String text, StateSetter setter) {
     print("message changed");
-    setState(() {
+    setter(() {
       _isComposing = text.length > 0;
     });
   }
@@ -85,48 +87,61 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildTextComposer() {
-    return IconTheme(
-        data: IconThemeData(color: Theme.of(context).accentColor),
-        child: PlatformAdaptiveContainer(
-            margin: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(children: [
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 4.0),
-                child: IconButton(
-                  icon: Icon(Icons.photo),
-                  onPressed: _handlePhotoButtonPressed,
-                ),
-              ),
-              Flexible(
-                child: TextField(
-                  controller: _textController,
-                  onSubmitted: _handleSubmitted,
-                  onChanged: _handleMessageChanged,
-                  decoration:
-                      InputDecoration.collapsed(hintText: 'Send a message'),
-                ),
-              ),
-              Container(
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState) {
+        return IconTheme(
+          data: IconThemeData(color: Theme.of(context).accentColor),
+          child: PlatformAdaptiveContainer(
+              margin: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(children: [
+                Container(
                   margin: EdgeInsets.symmetric(horizontal: 4.0),
-                  child: PlatformAdaptiveButton(
-                    icon: Icon(Icons.send),
-                    onPressed: _isComposing
-                        ? () => _handleSubmitted(_textController.text)
-                        : null,
-                    child: Text('Send'),
-                  )),
-            ])));
+                  child: IconButton(
+                    icon: Icon(Icons.photo),
+                    onPressed: _handlePhotoButtonPressed,
+                  ),
+                ),
+                Flexible(
+                  child: TextField(
+                    controller: _textController,
+                    onSubmitted: _handleSubmitted,
+                    onChanged: (str) => _handleMessageChanged(str, setState),
+                    decoration:
+                        InputDecoration.collapsed(hintText: 'Send a message'),
+                  ),
+                ),
+                Container(
+                    margin: EdgeInsets.symmetric(horizontal: 4.0),
+                    child: PlatformAdaptiveButton(
+                      icon: Icon(Icons.send),
+                      onPressed: _isComposing
+                          ? () => _handleSubmitted(_textController.text)
+                          : null,
+                      child: Text('Send'),
+                    )),
+              ])));
+      }
+    );
   }
  
   Widget _buildChatList(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: Firestore.instance.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').snapshots(),
+      stream: Firestore.instance.collection('chats').document('UAluilBWI4V129M2z8YX').collection('history').orderBy('timestamp', descending:true).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return LinearProgressIndicator();
-        return ListView(
-          padding: const EdgeInsets.only(top: 20.0),
-          children: snapshot.data.documents.map((data) => _buildListItem(context, data)).toList(),
-          // reverse: true,
+        // return ListView(
+        //   padding: const EdgeInsets.only(top: 20.0),
+        //   children: snapshot.data.documents.map((data) => _buildListItem(context, data)).toList(),
+        //   reverse: true,
+        // );
+        return ListView.builder(
+          padding: EdgeInsets.all(8.0),
+          reverse: true,
+          itemCount: snapshot.data.documents.length,
+          itemBuilder: (_, int index) {
+            print(index);
+            return _buildListItem(_, snapshot.data.documents[index]);
+          }
         );
       },
     );
@@ -138,35 +153,41 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       duration: Duration(milliseconds: 700),
       vsync: this,
     );
-    // _animationController.forward();
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 10.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(
-                  backgroundImage: AdvancedNetworkImage(
-                      widget._user.photoUrl,
-                      useDiskCache: true),
-              )
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(message.sender,
-                    style: Theme.of(context).textTheme.subhead),
-                Container(
-                    margin: const EdgeInsets.only(top: 5.0),
-                    child: Text(message.text)),
-              ],
-            ),
-          ],
+    _animationController.forward(); 
+    final Widget _return = SizeTransition(
+      sizeFactor: CurvedAnimation(
+        parent: _animationController, curve: Curves.easeOut),
+      axisAlignment: 0.0,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(right: 16.0),
+                child: CircleAvatar(
+                    backgroundImage: AdvancedNetworkImage(
+                        widget._user.photoUrl,
+                        useDiskCache: true),
+                )
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(message.sender,
+                      style: Theme.of(context).textTheme.subhead),
+                  Container(
+                      margin: const EdgeInsets.only(top: 5.0),
+                      child: Text(message.text)),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
+    return _return;
   }
 }
