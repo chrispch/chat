@@ -135,11 +135,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         Animation<double> animation,
         int index,
       ) {
+          final Message _message = Message.fromSnapshot(snapshot);
           return FadeTransition(
             opacity: animation,
             child: ChatMessage(
-              message: Message.fromSnapshot(snapshot),
-              user: widget._user
+              message: _message,
+              currentUser: widget._user,
               // onTap: _removeMessage,
             ),
           );
@@ -149,9 +150,23 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 }
 
 class ChatMessage extends StatelessWidget {
-  ChatMessage({this.message, this.user});
+  ChatMessage({this.message, this.currentUser});
   final Message message;
-  final User user;
+  final User currentUser;
+
+  Widget _buildCircleAvatar(BuildContext context) {
+    if (message.sender != currentUser.name) {
+      return Container(
+        margin: const EdgeInsets.only(right: 16.0),
+        child: CircleAvatar(
+            backgroundImage: AdvancedNetworkImage(
+                currentUser.photoUrl,
+                useDiskCache: true),
+        )
+      );
+    }
+    return Container();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -161,15 +176,9 @@ class ChatMessage extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 8.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: message.sender == currentUser.name? MainAxisAlignment.end :MainAxisAlignment.start,
           children: [
-            Container(
-              margin: const EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(
-                  backgroundImage: AdvancedNetworkImage(
-                      user.photoUrl,
-                      useDiskCache: true),
-              )
-            ),
+            _buildCircleAvatar(context),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
